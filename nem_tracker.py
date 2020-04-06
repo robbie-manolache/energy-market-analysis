@@ -90,24 +90,20 @@ class NEM_tracker:
         else:
             os.makedirs(self.tracker_dir)
 
-    def _resource_dict_entry(self, resource, url):
+    def _update_tracker_df(self, resource, url):
         """
         """
+        data_files = __get_links__(url, self.base_url)
+        data_keys = list(data_files.keys())
+        file_name = __gen_file_name__(data_keys)        
         self.resources[resource] = {
             'url': url,
-            'data_files': __get_links__(url, self.base_url), 
-            'tracker_file': ''
+            'data_files': data_files, 
+            'tracker_file': file_name
         }
         with open(self.resource_path, 'w') as wf:
             json.dump(self.resources, wf)
-    
-    def _resource_csv_tracker(self, resource):
-        """
-        """
-        data_files = self.resources[resource]['data_files']
-        data_keys = list(data_files.keys())
-        new_df = __gen_tracker_df__(data_files, data_keys)
-        file_name = __gen_file_name__(data_keys)
+        new_df = __gen_tracker_df__(data_files, data_keys)       
         file_path = os.path.join(self.tracker_dir, file_name)
         if file_name in os.listdir(self.tracker_dir):
             old_df = pd.read_csv(file_path, parse_dates=[
@@ -115,9 +111,6 @@ class NEM_tracker:
             ])
             tracker_df = __merge_trackers__(old_df, new_df)
         else:
-            self.resources[resource]['tracker_file'] = file_name
-            with open(self.resource_path, 'w') as wf:
-                json.dump(self.resources, wf)
             tracker_df = new_df
         tracker_df.to_csv(file_path, index=False)
     
@@ -131,8 +124,7 @@ class NEM_tracker:
             print('Resource already tracked!')
             print('Set new to False to update.')
         else:                       
-            self._resource_dict_entry(resource, url)
-            self._resource_csv_tracker(resource)
+            self._update_tracker_df(resource, url)
 
     def bulk_update(self):
         """
