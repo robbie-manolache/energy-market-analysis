@@ -64,9 +64,12 @@ def __merge_trackers__(old_df, new_df):
     new_temp = new_df.copy()[merge_cols]
     merge_df = pd.merge(old_temp, new_temp, on=merge_cols,
                         how='outer', indicator=True)
-    new_rows = merge_df[merge_df["_merge"]=="right_only"]
-    new_rows = new_rows[merge_cols].merge(new_df, on=merge_cols)
-    return pd.concat([old_df, new_rows], ignore_index=True)
+    old_rows = merge_df[merge_df["_merge"]=="left_only"]
+    old_rows = old_rows[merge_cols].merge(old_df, on=merge_cols)
+    # keep only old rows that have been downloaded
+      # else they need to extracted from different URL
+    old_rows = old_rows[old_rows.DOWNLOADED]
+    return pd.concat([old_rows, new_df], ignore_index=True)
 
 class NEM_tracker:
     """
@@ -107,7 +110,9 @@ class NEM_tracker:
         file_name = __gen_file_name__(data_keys)
         file_path = os.path.join(self.tracker_dir, file_name)
         if file_name in os.listdir(self.tracker_dir):
-            old_df = pd.read_csv(file_path)
+            old_df = pd.read_csv(file_path, parse_dates=[
+                'TIMESTAMP', 'UPLOAD_DATE', 'DOWNLOAD_DATE'
+            ])
             tracker_df = __merge_trackers__(old_df, new_df)
         else:
             self.resources[resource]['tracker_file'] = file_name
@@ -116,7 +121,7 @@ class NEM_tracker:
             tracker_df = new_df
         tracker_df.to_csv(file_path, index=False)
     
-    def update_resource(self, resource, new=True):
+    def update_resource(self, resource, new=False):
         """
         Adding new resources or from NEM website to track, 
         or updating existing ones.
@@ -128,3 +133,9 @@ class NEM_tracker:
         else:                       
             self._resource_dict_entry(resource, url)
             self._resource_csv_tracker(resource)
+
+    def bulk_update(self):
+        """
+        """
+        for resource in self.resources.keys():
+            self.update_resource(resource)
