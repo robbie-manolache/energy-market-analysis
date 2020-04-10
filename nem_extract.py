@@ -14,7 +14,6 @@ def __gen_tracker_dict__(res_dict):
         tracker_dict[k] = res_dict[k]['tracker_file']
     return tracker_dict
 
-
 class NEM_extractor(NEM_tracker):
     """
     """
@@ -24,7 +23,6 @@ class NEM_extractor(NEM_tracker):
         """
         NEM_tracker.__init__(self, data_dir, base_url)
         self.tracker_dict = __gen_tracker_dict__(self.resources)
-        self.selected_resource = None
         self.resource_dir = None
         self.current_tracker_path = None
         self.current_tracker_df = None
@@ -32,14 +30,6 @@ class NEM_extractor(NEM_tracker):
         self.timestamp_max = None
         self.time_range = None
         self.download_df = None
-
-    def select_resource(self):
-        """
-        """
-        res_list = dict(enumerate(self.tracker_dict.keys()))
-        choices = '\n'.join(['[%d] %s'%(k,v) for k,v in res_list.items()])
-        idx = input("Select from: %s"%choices)
-        self.selected_resource = res_list[int(idx)]
 
     def load_tracker_df(self, resource=None):
         """
@@ -60,7 +50,7 @@ class NEM_extractor(NEM_tracker):
         file_path = os.path.join(self.tracker_dir, file_name)
         self.current_tracker_path = file_path
         self.current_tracker_df = pd.read_csv(file_path, parse_dates=[
-            'TIMESTAMP', 'UPLOAD_DATE', 'DOWNLOAD_DATE'
+            'TIMESTAMP', 'DOWNLOAD_DATE'
         ])
         self.timestamp_min = self.current_tracker_df.TIMESTAMP.min()
         self.timestamp_max = self.current_tracker_df.TIMESTAMP.max()
@@ -73,13 +63,20 @@ class NEM_extractor(NEM_tracker):
             if date is not None:
                 self.time_range[i] = pd.to_datetime(date)
 
-    def set_download_df(self):
+    def set_download_df(self, latest=5, by_time_range=False, 
+                        manual_df=None):
         """
         """
         df = self.current_tracker_df.copy()
-        df = df[(df['TIMESTAMP']>=self.time_range[0])&
-                (df['TIMESTAMP']<=self.time_range[1])&
-                (~df.DOWNLOADED)]
+        if by_time_range:
+            df = df[(df['TIMESTAMP']>=self.time_range[0])&
+                    (df['TIMESTAMP']<=self.time_range[1])&
+                    (~df.DOWNLOADED)]
+        elif manual_df is not None:
+            df = manual_df
+        else:
+            df = df[~df.DOWNLOADED].sort_values(by='TIMESTAMP')
+            df = df.tail(latest)
         self.download_df = df
 
     def _download(self, url):
