@@ -2,7 +2,9 @@ import os
 import json
 import requests
 from bs4 import BeautifulSoup
+from datetime import datetime as dt
 import pandas as pd
+from __common__ import user_choice
 
 def __load_json__(file):
     """
@@ -20,8 +22,9 @@ def __get_links__(url, base_url):
     r = requests.get(url)
     soup = BeautifulSoup(r.text)
     link_dict = {}
+    ignore = ['[To Parent Directory]', 'DUPLICATE']
     for link in soup.findAll('a'):
-        if link.text == '[To Parent Directory]':
+        if link.text in ignore :
             pass
         else:
             link_dict[link.text] = base_url+link.get('href')
@@ -46,9 +49,8 @@ def __gen_tracker_df__(data_files, data_keys):
         'TIMESTAMP': pd.to_datetime(list(map(lambda x: 
                                     x.split('_')[-2], 
                                     data_keys))),
-        'UPLOAD_DATE': pd.to_datetime(list(map(lambda x: 
-                                      x.split('_')[-1][:-4], 
-                                      data_keys))),
+        'VERSION': list(map(lambda x: 'V'+x.split('_')[-1][:-4], 
+                                      data_keys)),
         'DOWNLOADED': False, 
         'DOWNLOAD_DATE': pd.to_datetime('19000101'),                          
         'URL': list(data_files.values())
@@ -59,7 +61,7 @@ def __merge_trackers__(old_df, new_df):
     """
     Add anything from new_df that is not in old_df already!
     """
-    merge_cols = ['TIMESTAMP', 'UPLOAD_DATE']
+    merge_cols = ['TIMESTAMP', 'VERSION']
     old_temp = old_df.copy()[merge_cols]
     new_temp = new_df.copy()[merge_cols]
     merge_df = pd.merge(old_temp, new_temp, on=merge_cols,
@@ -84,22 +86,24 @@ class NEM_tracker:
         self.base_url = base_url
         self.resource_path = os.path.join(data_dir, 'resources.json')
         self.resources = __load_json__(self.resource_path)
+        self.selected_resource = None
         self.tracker_dir = os.path.join(data_dir, 'resource_trackers')
         if os.path.isdir(self.tracker_dir):
             pass
         else:
             os.makedirs(self.tracker_dir)
 
-    def _update_tracker_df(self, resource, url):
+    def update_resource(self, resource):
         """
         """
+        url = self.base_url + resource
         data_files = __get_links__(url, self.base_url)
         data_keys = list(data_files.keys())
         file_name = __gen_file_name__(data_keys)        
         self.resources[resource] = {
             'url': url,
-            'data_files': data_files, 
-            'tracker_file': file_name
+            'tracker_file': file_name,
+            'last_update': dt.now().strftime('%Y-%m-%d-%H:%M:%S')
         }
         with open(self.resource_path, 'w') as wf:
             json.dump(self.resources, wf)
@@ -107,27 +111,32 @@ class NEM_tracker:
         file_path = os.path.join(self.tracker_dir, file_name)
         if file_name in os.listdir(self.tracker_dir):
             old_df = pd.read_csv(file_path, parse_dates=[
-                'TIMESTAMP', 'UPLOAD_DATE', 'DOWNLOAD_DATE'
+                'TIMESTAMP', 'DOWNLOAD_DATE'
             ])
             tracker_df = __merge_trackers__(old_df, new_df)
         else:
             tracker_df = new_df
         tracker_df.to_csv(file_path, index=False)
     
-    def update_resource(self, resource, new=False):
+    def add_resources(self, resources):
         """
-        Adding new resources or from NEM website to track, 
-        or updating existing ones.
         """
-        url = self.base_url + resource
-        if resource in self.resources.keys() and new:
-            print('Resource already tracked!')
-            print('Set new to False to update.')
-        else:                       
-            self._update_tracker_df(resource, url)
+        if type(resources) is not list:
+            resources = [resources]
+        else:
+            pass
+        for resource in resources:
+            self.update_resource(resource)
+
 
     def bulk_update(self):
         """
         """
         for resource in self.resources.keys():
             self.update_resource(resource)
+
+    def select_resource(self):
+        """
+        """
+        res_list = self.resources.keys()
+        self.selected_resource = user_choice(res_list)
