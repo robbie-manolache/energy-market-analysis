@@ -66,12 +66,20 @@ def __merge_trackers__(old_df, new_df):
     new_temp = new_df.copy()[merge_cols]
     merge_df = pd.merge(old_temp, new_temp, on=merge_cols,
                         how='outer', indicator=True)
+    # rows no longer in CURRENT NEM reports
     old_rows = merge_df[merge_df["_merge"]=="left_only"]
     old_rows = old_rows[merge_cols].merge(old_df, on=merge_cols)
-    # keep only old rows that have been downloaded
-      # else they need to extracted from different URL
+      # keep only old rows that have been downloaded
+      # else they need to extracted from ARCHIVE or older records
     old_rows = old_rows[old_rows.DOWNLOADED]
-    return pd.concat([old_rows, new_df], ignore_index=True)
+    # for common rows, must keep old_df records
+    com_rows = merge_df[merge_df["_merge"]=="both"]
+    com_rows = com_rows[merge_cols].merge(old_df, on=merge_cols)
+    # for new rows, use latest records
+    new_rows = merge_df[merge_df["_merge"]=="right_only"]
+    new_rows = new_rows[merge_cols].merge(new_df, on=merge_cols)
+    return pd.concat([old_rows, com_rows, new_rows], 
+                     ignore_index=True)
 
 class NEM_tracker:
     """
