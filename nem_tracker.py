@@ -143,8 +143,20 @@ class NEM_tracker:
         for resource in self.resources.keys():
             self.update_resource(resource)
 
-    def select_resource(self):
+    def select_resource(self, resource=None):
         """
         """
-        res_list = self.resources.keys()
-        self.selected_resource = user_choice(res_list)
+        d = {}
+        if resource is None:
+            res_list = self.resources.keys()
+            name = user_choice(res_list)
+        else:
+            name = resource
+        d['name'] = name
+        tracker_file = self.resources[name]['tracker_file']
+        d['tracker_path'] = os.path.join(self.tracker_dir, 
+                                         tracker_file)
+        d['resource_dir'] = os.path.join(self.data_dir, 
+                                         tracker_file[:-4])         
+        self.selected_resource = d                                                   
+
