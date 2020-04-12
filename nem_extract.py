@@ -6,14 +6,6 @@ from datetime import datetime as dt
 import pandas as pd
 from nem_tracker import NEM_tracker
 
-def __gen_tracker_dict__(res_dict):
-    """
-    """
-    tracker_dict = {}
-    for k in res_dict.keys():
-        tracker_dict[k] = res_dict[k]['tracker_file']
-    return tracker_dict
-
 class NEM_extractor(NEM_tracker):
     """
     """
@@ -22,7 +14,6 @@ class NEM_extractor(NEM_tracker):
         """
         """
         NEM_tracker.__init__(self, data_dir, base_url)
-        self.tracker_dict = __gen_tracker_dict__(self.resources)
         self.resource_dir = None
         self.current_tracker_path = None
         self.current_tracker_df = None
@@ -31,30 +22,33 @@ class NEM_extractor(NEM_tracker):
         self.time_range = None
         self.download_df = None
 
-    def load_tracker_df(self, resource=None):
+    def set_time_range(self, df):
         """
         """
-        if resource is None:
-            if self.selected_resource is None:
-                print("Must specify a resource!")
-            else:
-                resource = self.selected_resource
+        self.timestamp_min = df.TIMESTAMP.min()
+        self.timestamp_max = df.TIMESTAMP.max()
+        self.time_range = [self.timestamp_min, self.timestamp_max]
+
+    def load_tracker_df(self):
+        """
+        """
+        if self.selected_resource is None:
+            self.select_resource()
         else:
             pass
-        file_name = self.tracker_dict[resource]
-        self.resource_dir = os.path.join(self.data_dir, file_name[:-4])
+        self.resource_dir = self.selected_resource['resource_dir']
         if os.path.isdir(self.resource_dir):
             pass
         else:
             os.makedirs(self.resource_dir)
-        file_path = os.path.join(self.tracker_dir, file_name)
-        self.current_tracker_path = file_path
-        self.current_tracker_df = pd.read_csv(file_path, parse_dates=[
+        tracker_path = self.selected_resource['tracker_path']
+        self.current_tracker_path = tracker_path
+        tracker_df = pd.read_csv(tracker_path, parse_dates=[
             'TIMESTAMP', 'DOWNLOAD_DATE'
         ])
-        self.timestamp_min = self.current_tracker_df.TIMESTAMP.min()
-        self.timestamp_max = self.current_tracker_df.TIMESTAMP.max()
-        self.time_range = [self.timestamp_min, self.timestamp_max]
+        self.current_tracker_df = tracker_df
+        self.set_time_range(tracker_df)
+        
 
     def adjust_time_range(self, date_min=None, date_max=None):
         """
