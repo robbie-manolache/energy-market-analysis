@@ -59,7 +59,7 @@ def __gen_tracker_df__(data_files, data_keys):
 
 def __merge_trackers__(old_df, new_df):
     """
-    Add anything from new_df that is not in old_df already!
+    Add anything from new_df that is not in old_df already
     """
     merge_cols = ['TIMESTAMP', 'VERSION']
     old_temp = old_df.copy()[merge_cols]
@@ -128,6 +128,11 @@ class NEM_tracker:
     
     def add_resources(self, resources):
         """
+        For adding new resources.
+        Resources must be specified as the relative URL
+        path from the domain to the directory where all
+        relevant data files are stored.
+        E.g. /Reports/Current/Next_Day_Intermittent_DS/ 
         """
         if type(resources) is not list:
             resources = [resources]
@@ -136,15 +141,16 @@ class NEM_tracker:
         for resource in resources:
             self.update_resource(resource)
 
-
     def bulk_update(self):
         """
+        For updating existing resources.
         """
         for resource in self.resources.keys():
             self.update_resource(resource)
 
     def select_resource(self, resource=None):
         """
+        Select a resource for further processing.
         """
         d = {}
         if resource is None:
@@ -159,4 +165,3 @@ class NEM_tracker:
         d['resource_dir'] = os.path.join(self.data_dir, 
                                          tracker_file[:-4])         
         self.selected_resource = d                                                   
-
