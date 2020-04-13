@@ -30,27 +30,43 @@ def __get_links__(url, base_url):
             link_dict[link.text] = base_url+link.get('href')
     return link_dict
 
-def __gen_file_name__(data_keys):
+def __gen_file_name__(data_keys, resource_type):
     """
     """
-    name = set(map(lambda x: '-'.join(x.split('_')[:-2]).lower(),
+    if resource_type == 'Archive':
+        i = -1
+    else:
+        i = -2
+    name = set(map(lambda x: '-'.join(x.split('_')[:i]).lower(),
                    data_keys))
-    name = list(name)
+    name = list(name)   
     if len(name) > 1:
         print("More than one file type detected!")
         return None
     else:
-        return name[0]+'.csv'
+        if resource_type == 'Archive':
+            name = '-'.join([name[0],resource_type.lower()])
+        else:
+            name = name[0]
+        return name + '.csv'
 
-def __gen_tracker_df__(data_files, data_keys):
+def __gen_tracker_df__(data_files, data_keys, resource_type):
     """
     """
-    data_dict = {
-        'TIMESTAMP': pd.to_datetime(list(map(lambda x: 
+    if resource_type == 'Archive':
+        timestamp = pd.to_datetime(list(map(lambda x: 
+                                   x.split('_')[-1][:-4], 
+                                   data_keys)))
+        version = resource_type                          
+    else:
+        timestamp = pd.to_datetime(list(map(lambda x: 
                                     x.split('_')[-2], 
-                                    data_keys))),
-        'VERSION': list(map(lambda x: 'V'+x.split('_')[-1][:-4], 
-                                      data_keys)),
+                                    data_keys)))
+        version = list(map(lambda x: 'V'+x.split('_')[-1][:-4], 
+                                      data_keys))
+    data_dict = {
+        'TIMESTAMP': timestamp,
+        'VERSION': version,
         'DOWNLOADED': False, 
         'DOWNLOAD_DATE': pd.to_datetime('19000101'),                          
         'URL': list(data_files.values())
@@ -101,21 +117,30 @@ class NEM_tracker:
         else:
             os.makedirs(self.tracker_dir)
 
+    def resources_report(self):
+        """
+        """
+        for k, v in self.resources.items():
+            print('\n%s\nLast update: %s'%(k, v['last_update']))
+
     def update_resource(self, resource):
         """
         """
         url = self.base_url + resource
         data_files = __get_links__(url, self.base_url)
         data_keys = list(data_files.keys())
-        file_name = __gen_file_name__(data_keys)        
+        resource_type = resource.split('/')[2]
+        file_name = __gen_file_name__(data_keys, resource_type)        
         self.resources[resource] = {
             'url': url,
+            'type': resource_type,
             'tracker_file': file_name,
             'last_update': dt.now().strftime('%Y-%m-%d-%H:%M:%S')
         }
         with open(self.resource_path, 'w') as wf:
             json.dump(self.resources, wf)
-        new_df = __gen_tracker_df__(data_files, data_keys)       
+        new_df = __gen_tracker_df__(data_files, data_keys, 
+                                    resource_type)       
         file_path = os.path.join(self.tracker_dir, file_name)
         if file_name in os.listdir(self.tracker_dir):
             old_df = pd.read_csv(file_path, parse_dates=[
