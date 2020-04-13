@@ -95,3 +95,12 @@ class NEM_extractor(NEM_tracker):
                 ] = (True, now)
         self.current_tracker_df.to_csv(self.current_tracker_path, 
                                        index=False)
+        for f in os.listdir(self.resource_dir):
+            if f.endswith('.zip'):
+                path = os.path.join(self.resource_dir, f)
+                with ZipFile(path, 'r') as zf:
+                    zf.extractall(self.resource_dir)
+                os.remove(path)
+            else:
+                pass
+                               
