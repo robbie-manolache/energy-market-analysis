@@ -37,16 +37,17 @@ class NEM_loader(NEM_extractor):
         df.loc[:, 'FILE'] = df['URL'].apply(lambda x: 
                             x.split('/')[-1].replace('.zip','.CSV'))
         self.available_file_df = df[['TIMESTAMP', 'FILE']]
-        self.set_time_range(df)
+        self._set_time_range(df)
         self.available_files = os.listdir(self.resource_dir)
         # note this may be sensitive to file sorting (may have to fix)
+        # also won't work with Archive Trackers!
         if df.FILE.tolist() == self.available_files:
             pass
         else:
             print("WARNING: inconsistency detected in file records")
 
     def set_read_list(self, latest=1, by_time_range=False, 
-                      manual_list=None):
+                      manual_list=None, all_files=False):
         """
         """
         if by_time_range:
@@ -56,6 +57,8 @@ class NEM_loader(NEM_extractor):
             read_list = df['FILE'].tolist()
         elif manual_list is not None:
             read_list = manual_list
+        elif all_files:
+            read_list = self.available_files
         else:
             read_list = self.available_files[-latest:]
         self.files_to_read = read_list
