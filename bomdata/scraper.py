@@ -90,7 +90,8 @@ class BOM_scraper:
             path = os.path.join(self.station_dir, file)
             df_list.append(pd.read_csv(path, skiprows=9,
                                        encoding='ISO-8859-1'))
-        return pd.concat(df_list, ignore_index=True)
+        return pd.concat(df_list, ignore_index=True
+                ).drop('Unnamed: 0', 1)
 
     
 
