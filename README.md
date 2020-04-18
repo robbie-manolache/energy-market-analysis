@@ -3,6 +3,7 @@
 ### *Exploring NEM open data from Australian energy markets*
 
 The [NEM website](http://nemweb.com.au) contains a wealth of data about the Australian energy market and most of it is updated on a frequent basis. Before even proceeding to basic EDA, setting up a dynamic data extraction pipeline is quite necessary. Manually downloading and unzipping 1000s of files is probably not a great use of time.
+<br></br>
 
 ## Data Extraction Tools
 
@@ -15,6 +16,7 @@ This tool can track user-specified parts of the [NEM website](http://nemweb.com.
 ### BOM-Data: Bureau of Meteorology Data
 
 This tool has the ability to scrape the latest, as well as historical publicly-available weather data from selected weather stations in Australia. The `bomdata_demo.ipynb` notebook shows how this simple tool can be used. 
+<br></br>
 
 ## Exploratory Data Analysis
 
