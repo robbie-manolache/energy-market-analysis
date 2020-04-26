@@ -6,6 +6,39 @@ from datetime import datetime as dt
 import pandas as pd
 from __common__ import user_choice
 
+def _scrape_station_list(url):
+    """
+    Scrapes the list of key BOM weather stations that have 
+    historical data available. Output is stored as a Pandas
+    DataFrame and includes the location name, station ID,
+    URL and state. 
+    """
+    station_url = url + "/climate/dwo/"
+    r = requests.get(station_url)
+    soup = BeautifulSoup(r.text)
+    station_dict = {
+        "name": [],
+        "station_id": [],
+        "url": [],
+        "state": []
+    }
+    for link in soup.findAll('a'):
+        if "IDCJDW" in link.get('href'):
+            if len(link.get('href').split('.'))==2:
+                state = link.text
+            else:
+                pass
+            if len(link.get('href').split('.'))==3:
+                station_dict["name"].append(link.text)
+                station_dict["station_id"].append(link.get('href'
+                                         ).split('.')[0])
+                station_dict["url"].append(station_url + \
+                                           link.get('href'))
+                station_dict["state"].append(state)
+            else:
+                pass
+    return pd.DataFrame(station_dict)   
+
 class BOM_scraper:
     """
     """
@@ -16,12 +49,24 @@ class BOM_scraper:
         """
         self.data_dir = data_dir       
         self.base_url = base_url
+        self.station_df = self._get_station_list()
         self.station_id = None
         self.station_url = None
         self.station_dir = None
         self.download_links = None
 
-    def _get_file_links(self, paths):
+    def _get_station_list(self):
+        """
+        """
+        df_path = os.path.join(self.data_dir, "station_list.csv")
+        try:            
+            df = pd.read_csv(df_path)
+        except:
+            df = _scrape_station_list(self.base_url) 
+            df.to_csv(df_path)
+        return df
+
+    def _get_file_links(self):
         """
         """
         r = requests.get(self.station_url)
@@ -60,7 +105,7 @@ class BOM_scraper:
         else:
             print("Set station ID first!")
             return
-        self.download_links = self._get_file_links(paths)
+        self.download_links = self._get_file_links()
 
     def _download_csv(self, url):
         """
