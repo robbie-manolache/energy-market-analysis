@@ -63,7 +63,7 @@ class BOM_scraper:
             df = pd.read_csv(df_path)
         except:
             df = _scrape_station_list(self.base_url) 
-            df.to_csv(df_path)
+            df.to_csv(df_path, index=False)
         return df
 
     def _get_file_links(self):
@@ -85,11 +85,22 @@ class BOM_scraper:
                 links[k] = self.base_url+csv_link
         return links
 
-    def set_station_id(self, station_id):
+    def select_station(self, station_id=None):
         """
         """
-        self.station_id = station_id 
-        self.station_dir = os.path.join(self.data_dir, station_id) 
+        if station_id is None:
+            df = self.station_df.copy()
+            states = df['state'].unique().tolist()
+            state = user_choice(states)
+            df = df[df['state']==state]
+            stations = df['name'].unique().tolist()
+            station = user_choice(stations)
+            self.station_id = df[df['name']==station
+                                 ]['station_id'].values[0]
+        else:
+            self.station_id = station_id
+        self.station_dir = os.path.join(self.data_dir, 
+                                        self.station_id) 
         if os.path.isdir(self.station_dir):
             pass
         else:
@@ -127,13 +138,13 @@ class BOM_scraper:
             if date in dates:
                 self._download_csv(url)
 
-    def load_station_data(self):
+    def load_station_data(self, skip=9):
         """
         """
         df_list = []
         for file in os.listdir(self.station_dir):
             path = os.path.join(self.station_dir, file)
-            df_list.append(pd.read_csv(path, skiprows=9,
+            df_list.append(pd.read_csv(path, skiprows=skip,
                                        encoding='ISO-8859-1'))
         return pd.concat(df_list, ignore_index=True
                 ).drop('Unnamed: 0', 1)
